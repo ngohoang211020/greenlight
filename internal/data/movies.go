@@ -16,7 +16,7 @@ type Movie struct {
 	Version   int32     `json:"version"`
 }
 
-// Implement a MarshalJSON() method on the Movie struct, so that it satisfies the
+// MarshalJSON Implement a MarshalJSON() method on the Movie struct, so that it satisfies the
 // json.Marshaler interface.
 func (m Movie) MarshalJSON() ([]byte, error) {
 	// Declare a variable to hold the custom runtime string (this will be the empty
