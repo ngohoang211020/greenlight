@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const version = "1.0.0 "
+const version = "1.0.0"
 
 type config struct {
 	port int
@@ -17,7 +17,7 @@ type config struct {
 }
 type application struct {
 	config config
-	log    *log.Logger
+	logger *log.Logger
 }
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 
 	app := &application{
 		config: cfg,
-		log:    logger,
+		logger: logger,
 	}
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.port),
