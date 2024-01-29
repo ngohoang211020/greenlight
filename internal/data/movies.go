@@ -121,29 +121,35 @@ func (m MovieModel) Delete(id int64) error {
 	return nil
 }
 
-func (m MovieModel) GetAll() ([]*Movie, error) {
-	query := `SELECT id,created_at,title,year,runtime,genres,version 
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
+	query := fmt.Sprintf(`SELECT count(*) OVER(),id,created_at,title,year,runtime,genres,version 
 		FROM movies 
-		WHERE 
-		ORDER BY id`
+		WHERE (to_tsvector('simple',title) @@ plainto_tsquery('simple',$1) or $1 ='')
+		AND (genres @> $2 OR $2='{}')
+		ORDER BY %s %s,id ASC
+		LIMIT $3 OFFSET $4`, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query)
+	args := []interface{}{title, pq.Array(genres), filters.limit(), filters.offset()}
+
+	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 	// Importantly, defer a call to rows.Close() to ensure that the resultset is closed
 	// before GetAll() returns.
 	defer rows.Close()
 
 	// Initialize an empty slice to hold the movie data.
+	totalRecords := 0
 	movies := []*Movie{}
 
 	for rows.Next() {
 		var movie Movie
 		err := rows.Scan(
+			&totalRecords,
 			&movie.ID,
 			&movie.CreatedAt,
 			&movie.Title,
@@ -153,7 +159,7 @@ func (m MovieModel) GetAll() ([]*Movie, error) {
 			&movie.Version,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
 		movies = append(movies, &movie)
@@ -162,9 +168,9 @@ func (m MovieModel) GetAll() ([]*Movie, error) {
 	// When the rows.Next() loop has finished, call rows.Err() to retrieve any error
 	// that was encountered during the iteration.
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
-	return movies, nil
+	return movies, calculateMetadata(totalRecords, filters.Page, filters.PageSize), nil
 }
 
 // MarshalJSON Implement a MarshalJSON() method on the Movie struct, so that it satisfies the
