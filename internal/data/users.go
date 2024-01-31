@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"github.com/ngohoang211020/greenlight/internal/validator"
@@ -81,6 +82,37 @@ func (m UserModel) Update(user *User) error {
 		}
 	}
 	return nil
+}
+
+func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error) {
+	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
+
+	query := `SELECT id,created_at,name,password_hash,email,activated,version
+	FROM users left join tokens ON tokens.user_id=users.id
+	WHERE tokens.hash= $1
+	AND tokens.scope = $2
+	AND tokens.expiry > $3
+	`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// Create a slice containing the query arguments. Notice how we use the [:] operator
+	// to get a slice containing the token hash, rather than passing in the array (which
+	// is not supported by the pq driver), and that we pass the current time as the
+	// value to check against the token expiry.
+	args := []interface{}{tokenHash[:], tokenScope, time.Now()}
+
+	var user User
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.Name, &user.Password.hash, &user.Email, &user.Activated, &user.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+	return &user, nil
 }
 
 type User struct {
