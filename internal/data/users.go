@@ -10,10 +10,18 @@ import (
 	"time"
 )
 
+// AnonymousUser Declare a new AnonymousUser variable.
+var AnonymousUser = &User{}
+
 // ErrDuplicateEmail Define a custom ErrDuplicateEmail error.
 var (
 	ErrDuplicateEmail = errors.New("duplicate email")
 )
+
+// Check if a User instance is the AnonymousUser.
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
+}
 
 type UserModel struct {
 	DB *sql.DB

@@ -88,10 +88,10 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	validator := validator.New()
+	v := validator.New()
 
-	if data.ValidateTokenPlaintext(validator, input.TokenPlaintext); !validator.Valid() {
-		app.failedValidationResponse(w, r, validator.Errors)
+	if data.ValidateTokenPlaintext(v, input.TokenPlaintext); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -99,8 +99,8 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			validator.AddError("token", "invalid or expired activation token")
-			app.failedValidationResponse(w, r, validator.Errors)
+			v.AddError("token", "invalid or expired activation token")
+			app.failedValidationResponse(w, r, v.Errors)
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
