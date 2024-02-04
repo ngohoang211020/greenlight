@@ -33,3 +33,6 @@ build/
 
 flyway.conf
 
+.envrc
+go.sun
+bin/

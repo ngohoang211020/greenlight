@@ -47,7 +47,6 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		case errors.Is(err, data.ErrDuplicateEmail):
 			v.AddError("email", "a user with this email address already exists")
 			app.failedValidationResponse(w, r, v.Errors)
-
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
@@ -55,6 +54,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	err = app.models.Permissions.AddForUser(user.ID, data.MovieRead)
+
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
